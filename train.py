@@ -1,6 +1,7 @@
 import os
 import wandb
 import evaluate
+import argparse
 import numpy as np
 import pandas as pd
 import torch
@@ -16,7 +17,116 @@ from transformers import (
 )
 from transformers.trainer_callback import EarlyStoppingCallback
 
+def parse_args():
+    "Overriding default arguments for dataset and training hyperparameters"
+    argparser=argparse.ArgumentParser(
+        description="process parameters for processing and cleaning dataset."
+    )
 
+    argparser.add_argument(
+        "--checkpoint",
+        type=str,
+        default='facebook/bart-base',
+        help='model checkpoint used to generate questions from answers'
+    )
+
+    argparser.add_argument(
+        "--tok",
+        type=str,
+        default='',
+        help='tokenizer checkpoint. Only use if tokenizer is missing \
+            from the model repository.'
+    )
+
+    argparser.add_argument(
+        '--overwrite',
+        dest='overwrite',
+        default=False,
+        action='store_true',
+        help='include flag to overwrite existing tokenized dataset files.'
+    )
+
+    argparser.add_argument(
+        '--max_length',
+        type=int,
+        default=512,
+        help='maximum length of tokenized input for the model.'
+    )
+
+    argparser.add_argument(
+        '--prompt',
+        type=str,
+        default='',
+        help='additional prompt to add before answer. \
+            Only use when training a T5 like model.'
+    )
+
+    argparser.add_argument(
+        '--fp16',
+        dest='fp16',
+        default=True,
+        action='store_false',
+        help='include flag to use float32 precision instead of half-precision.'
+    )
+
+    argparser.add_argument(
+        '--batch_size',
+        type=int,
+        default=4,
+        help='size of training and validation batches'
+    )
+
+    argparser.add_argument(
+        '--num_epochs',
+        type=int,
+        default=8,
+        help='Number of epochs to train the model.'
+    )
+
+    argparser.add_argument(
+        '--eval_strat',
+        type=str,
+        default='epoch',
+        help='evaluation strategy used by Huggingface trainer'
+    )
+
+    argparser.add_argument(
+        '--lr',
+        type=float,
+        default=5.5e-5,
+        help='learning rate used to train model.'
+    )
+
+    argparser.add_argument(
+        '--weight_decay',
+        type=float,
+        default=0.01,
+        help='decoupled weight decay used in Adam optimizer.'
+    )
+
+    argparser.add_argument(
+        '--save_limit',
+        type=int,
+        default=3,
+        help='limit on how many checkpoints to save during training.'
+    )
+
+    argparser.add_argument(
+        '--gradient_accumulation_steps',
+        type=int,
+        default=2,
+        help='number of forward passes before taking optimization step'
+    )
+
+    argparser.add_argument(
+        '--early_stopping_patience',
+        type=int,
+        default=3,
+        help='Stop training model if performance has not improved after \
+            this number of epochs or steps (depending on evaluation strategy).'
+    )
+
+    return argparser.parse_args()
 
 class Compute_Metrics:
     def __init__(self,tokenizer):
@@ -70,10 +180,18 @@ class TrainModel:
     
     def __init__(self,
                  checkpoint,
-                 dataset,
                  subreddit='asks',
-                 tok=None,
+                 tok='',
                  fp16=True):
+        
+        cleaned_file_name=f'./data/{subreddit}_cleaned_data'
+        
+        if os.path.exists(cleaned_file_name):
+            self.dataset=load_from_disk(cleaned_file_name)
+        else:
+            raise Exception("Dataset does not exist. Run process_data file to create \
+                            cleaned dataset.")
+        
         
         self.device= "cuda" if torch.cuda.is_available() else "cpu"
         
@@ -85,12 +203,13 @@ class TrainModel:
         
         self.model = AutoModelForSeq2SeqLM.from_pretrained(checkpoint)
         
-        if tok is None:
+        if tok is '':
             self.tok = AutoTokenizer.from_pretrained(checkpoint)
         else:
             self.tok = tok
+
         self.data_name = subreddit+'_tok_data'
-        self.dataset=dataset
+        #self.dataset=dataset
         self.data_collator = DataCollatorForSeq2Seq(self.tok, 
                                                     self.model)
     
@@ -131,20 +250,16 @@ class TrainModel:
     
             run.log_artifact(tok_data_art)
         
+
     def train_model(self,batch_size=4,num_epochs=8,eval_strat='epoch',
                     lr=5.5e-5,weight_decay=0.01,save_limit=3,
                     gradient_accumulation_steps=2,
-                    early_stopping_patience=3,
-                    load_file='',local_files_only=False):
+                    early_stopping_patience=3):
         
         with wandb.init(project='Question_Generation', 
                  entity=None, 
                  job_type='training',
                  name='train_'+self.model_name+'_'+self.data_name) as run:
-            
-            if load_file!='':
-                self.model=AutoModelForSeq2SeqLM.from_pretrained(load_file,
-                                                                 local_files_only=local_files_only)
 
             logging_steps=len(self.tok_datasets['train'])//(2*batch_size)
 
@@ -193,5 +308,61 @@ class TrainModel:
             trained_model_art=wandb.Artifact(self.model_name+'_'+self.data_name,type='model')
             trained_model_art.metadata={"hub_id":'dhmeltzer/'+self.model_name+'_'+self.data_name}
 
-if __name__ == "__main__":
+
+
+def complete_train(checkpoint,
+                   subreddit,
+                   tok,
+                   fp16=True,
+                   batch_size=4,
+                   num_epochs=8,
+                   eval_strat='epoch',
+                   lr=5.5e-5,
+                   weight_decay=0.01,
+                   save_limit=3,
+                   gradient_accumulation_steps=2,
+                   early_stopping_patience=3,
+                   max_length=512,
+                   prompt='',
+                   overwrite=False
+                   ):
+
+    train_model=TrainModel(checkpoint,
+                           subreddit=subreddit,
+                           tok=tok,
+                           fp16=fp16)
+
+    train_model.prepare_data(max_length=max_length,
+                             prompt=prompt,
+                             overwrite=overwrite
+                             )
     
+    train_model.train_model(batch_size=batch_size,
+                            num_epochs=num_epochs,
+                            eval_strat=eval_strat,
+                            lr=lr,
+                            weight_decay=weight_decay,
+                            save_limit=save_limit,
+                            gradient_accumulation_steps=gradient_accumulation_steps,
+                            early_stopping_patience=early_stopping_patience)
+
+if __name__ == "__main__":
+    args=vars(parse_args())
+
+    complete_train(args.checkpoint,
+                   args.subreddit,
+                   args.tok,
+                   args.fp16,
+                   args.batch_size,
+                   args.num_epochs,
+                   args.eval_strat,
+                   args.lr,
+                   args.weight_decay,
+                   args.save_limit,
+                   args.gradient_accumulation_steps,
+                   args.early_stopping_patience,
+                   args.max_length,
+                   args.prompt,
+                   args.overwrite
+                   )
+

@@ -6,12 +6,65 @@ import torch
 import numpy as np
 from datasets import load_from_disk
 from download_data import download_raw_data
+from sentence_transformers import SentenceTransformer
+
 
 def parse_args():
     "Overriding default arguments for processing data"
     argparser=argparse.ArgumentParser(
-        description=""
+        description="process parameters for processing and cleaning dataset."
     )
+    
+    argparser.add_argument(
+        "--subreddit",
+        type=str,
+        default='asks',
+        help='subreddit to use from ELI5 dataset. Options are \
+            "asks" "askh" and "eli5" for askscience, askhistory, and ELI5 subreddits.'
+    )
+    
+    argparser.add_argument(
+        '--overwrite',
+        dest='overwrite',
+        default=False,
+        action='store_true',
+        help='include flag to overwrite existing dataset files.'
+    )
+
+    argparser.add_argument(
+        "--sent_model",
+        type=str,
+        default='paraphrase-MiniLM-L6-v2',
+        help='checkpoint for SentenceTransformer used to embed answers.'
+    )
+
+    argparser.add_argument(
+        "--chunk_length",
+        type=int,
+        default=128,
+        help='Split answers into substrings of size "chunk_length".\
+            Each substring is embedded using sentence transformer and we \
+                sum all subtrings to get embedding of entire answer.'
+    )
+
+    argparser.add_argument(
+        "--cutoff",
+        type=float,
+        default=.9,
+        help="If cosine distance between two answers in the train/validation/test \
+            splits is greater than cutoff, answer is removed from one of the datasets \
+                to avoid data leakage."
+    )
+
+    argparser.add_argument(
+        "--min_sent_length",
+        type=int,
+        default=20,
+        help= "Only keep answers which are at least 'min_sent_length' characters long."
+    )
+
+    return argparser.parse_args()
+
 
 def preprocess_func(example):
     example['answers.text']=example['answers.text'][0]
@@ -78,11 +131,13 @@ def par_to_vec(model,sent,chunk_length=128):
     embeddings=model.encode(chunks)
     return np.sum(embeddings,axis=0,keepdims=True)
 
-def dataset_par_to_vec(model,example):
-    example['sent_vec']=par_to_vec(model,example['answers.text'])
+def dataset_par_to_vec(model,example,chunk_length=128):
+    example['sent_vec']=par_to_vec(model,
+                                   example['answers.text'],
+                                   chunk_length=chunk_length)
     return example
 
-def clean_and_embed_data(model,
+def clean_and_embed_data(sent_model,
                          subreddit='asks',
                          overwrite=False,
                          cutoff=.9,
@@ -101,7 +156,7 @@ def clean_and_embed_data(model,
                        overwrite=overwrite,
                        min_sent_length=min_sent_length)
     
-    ds_reduced_emb=ds_reduced.map(lambda x: dataset_par_to_vec(model,x))
+    ds_reduced_emb=ds_reduced.map(lambda x: dataset_par_to_vec(sent_model,x))
     ds_reduced_emb.set_format('torch')
     
     train_vecs=ds_reduced_emb['train']['sent_vec']
@@ -148,16 +203,29 @@ def clean_and_embed_data(model,
         ds_reduced_emb[split]=ds_reduced_emb[split].filter(lambda example:
                                                        removed_sent not in example['answers.text'])
     
-    ds_reduced_emb.save_to_disk(f'./data/{data_name}')
+    ds_reduced_emb.save_to_disk(cleaned_file_name)
 
     with wandb.init(project='Question_Generation', 
             entity = None, 
             job_type = 'logging_cleaned_data',
             name = 'cleaned_data') as run:
     
-        cleaned_data_art=wandb.Artifact(data_name,type='dataset')
-        cleaned_data_art.add_dir(f'./data/{data_name}')
+        cleaned_data_art=wandb.Artifact(subreddit+'_cleaned_data',type='dataset')
+        cleaned_data_art.add_dir(cleaned_file_name)
         
         run.log_artifact(cleaned_data_art)
 
     return ds_reduced_emb
+
+if __name__ == "__main__":
+    
+    args=vars(parse_args())
+
+    sent_model_checkpoint=args.sent_model
+    sent_model=SentenceTransformer(sent_model_checkpoint)
+
+    clean_and_embed_data(sent_model,
+                         subreddit=args.subreddit,
+                         overwrite=args.overwrite,
+                         cutoff=args.cutoff,
+                         min_sent_length=args.min_sent_length)
