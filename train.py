@@ -429,6 +429,8 @@ class TrainModel:
             trained_model_art=wandb.Artifact(self.model_name+'_'+self.data_name,type='model')
             trained_model_art.metadata={"hub_id":'dhmeltzer/'+self.model_name+'_'+self.data_name}
 
+            run.log_artifact(trained_model_art)
+
 def complete_train(checkpoint,
                    subreddit,
                    fp16=True,
