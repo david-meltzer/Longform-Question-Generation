@@ -13,7 +13,6 @@ from transformers import (
     DataCollatorForSeq2Seq,
     Seq2SeqTrainingArguments,
     Seq2SeqTrainer,
-    DataCollatorForSeq2Seq
 )
 from transformers.trainer_callback import EarlyStoppingCallback
 
@@ -365,4 +364,3 @@ if __name__ == "__main__":
                    args.prompt,
                    args.overwrite
                    )
-

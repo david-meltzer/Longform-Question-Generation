@@ -1,0 +1,10 @@
+import faiss
+import pickle
+import pandas as pd
+import streamlit as st
+from sentence_transformers import SentenceTransformer
+
+@st.cache
+def read_data(s3_data):
+    """Read the data from S3."""
+    return pd.read_csv(s3_data)

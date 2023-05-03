@@ -33,14 +33,9 @@ def parse_args():
     return argparser.parse_args()
 
 def download_raw_data(subreddit='asks',
-                      overwrite = False,
-                      local_file = ''):  
+                      overwrite = False):  
     
-    if local_file is not '':
-        raw_file_name = local_file    
-    
-    else:
-        raw_file_name = f'./data/{subreddit}_raw_data'
+    raw_file_name = f'./data/{subreddit}_raw_data'
 
     if os.path.exists(raw_file_name) and not overwrite:
         dataset=load_from_disk(raw_file_name)
