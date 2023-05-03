@@ -488,23 +488,6 @@ def complete_train(checkpoint,
 if __name__ == "__main__":
     args=vars(parse_args())
 
-<<<<<<< HEAD
-    complete_train(args.checkpoint,
-                   args.subreddit,
-                   args.tok,
-                   args.fp16,
-                   args.batch_size,
-                   args.num_epochs,
-                   args.eval_strat,
-                   args.lr,
-                   args.weight_decay,
-                   args.save_limit,
-                   args.gradient_accumulation_steps,
-                   args.early_stopping_patience,
-                   args.max_length,
-                   args.prompt,
-                   args.overwrite
-=======
     complete_train(checkpoint=args.checkpoint,
                    subreddit=args.subreddit,
                    fp16=args.fp16,
@@ -519,5 +502,4 @@ if __name__ == "__main__":
                    save_limit=args.save_limit,
                    gradient_accumulation_steps=args.gradient_accumulation_steps,
                    early_stopping_patience=args.early_stopping_patience,
->>>>>>> bcff9773844697770c9b4a4910f235e0ae815bbf
                    )
