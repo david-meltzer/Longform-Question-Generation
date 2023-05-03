@@ -346,9 +346,5 @@ if __name__ == "__main__":
                          subreddit=args.subreddit,
                          overwrite=args.overwrite,
                          cutoff=args.cutoff,
-<<<<<<< HEAD
-                         min_sent_length=args.min_sent_length)
-=======
                          min_sent_length=args.min_sent_length,
                          chunk_length=args.chunk_length)
->>>>>>> bcff9773844697770c9b4a4910f235e0ae815bbf
