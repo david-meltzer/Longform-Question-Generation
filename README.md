@@ -6,6 +6,8 @@ The inspiration for this project came from this interesting <a href="https://arx
 We will study how some of the ideas introduced in that paper can also be used in the purely scientific domain by training large language models on the r/AskScience dataset.
 
 All our fine-tuned models are hosted on Huggingface, see any model <a href="https://huggingface.co/dhmeltzer">here<a> which contains the text "asks" or "askscience" in the model name. The best performing model is a fine-tuned BART-large model which can be tested <a href="https://huggingface.co/dhmeltzer/bart-large_askscience-qg">here</a>. Models with the word "yake" in the title require that any input text is modified by adding additional keywords which we extracted using the <a href="https://github.com/LIAAD/yake">YAKE</a> model. The (cleaned) dataset can be found <a href="https://huggingface.co/datasets/dhmeltzer/ask-science-qg">here</a> the same dataset with keywords added can be found <a href="https://huggingface.co/datasets/dhmeltzer/yake_top3_asks_cleaned">here</a>.
+  
+You can also test the models yourselves using a Streamlit application hosted on Huggingface, click href="https://huggingface.co/spaces/dhmeltzer/qg_generation">here</a>. The application let's you compare the performance of two of our fine-tuned models, BART-Large and FLAN-T5-Base trained on the un-augmented dataset, with the zero-shot performance of FLAN-T5-XXL and GPT-3.5.
 
 # Reports
 
