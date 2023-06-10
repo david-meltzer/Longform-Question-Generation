@@ -1,3 +1,6 @@
+# Quick Links
+A detailed description of this project can be found in the following reports, <a href="https://api.wandb.ai/links/dmeltzer/7an677es">1</a> and <a href="https://wandb.ai/dmeltzer/Question_Generation/reports/Exploratory-Data-Analysis-for-r-AskScience--Vmlldzo0MjQwODg1">2</a>. A Streamlit application for question generation can be found <a href="https://huggingface.co/spaces/dhmeltzer/qg_generation">here</a>.
+
 # Question Generation for Scientific Text
 
 Can we teach large language models (LLMs) to ask scientific questions? 
@@ -30,4 +33,11 @@ This folder contains the following files:
   <li> inference.ipynb: This contains the code used to perform inference both with our fine-tuned models as well as with GPT-3.5 and FLAN-T5-XXL. The latter two models are too large to train and run inference on locally, so we call these models using the OpenAI and Huggingface APIs, respectively, and test them using zero-shot learning.
   </ul>
 
-The <b>scripts</b> folder contains essentially the same code as the QG_consistent.ipynb file, except the code has been refactored and commented to make it more readable. In particular, all the files can be run on the command line. The file download_data.py contains the code to download the dataset from Huggingface, the file process_data.py contains the code to process and clean the dataset, and the file train.py contains the code to train the tranformer models.
+The <b>scripts</b> folder contains essentially the same code as the QG_consistent.ipynb file, except the code has been refactored and commented to make it more readable and these files can be run on the command line. 
+
+<ul>
+  <li>download_data.py: Contains the code to download the dataset from Huggingface.</li>
+  <li>process_data.py: Contains the code to process and clean the dataset.</li>
+  <li>train.py: Contains the code to train the large language models.</li>
+  </ul>
+
