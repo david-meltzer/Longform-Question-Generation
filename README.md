@@ -25,7 +25,7 @@ All our fine-tuned models are hosted on Huggingface, see any model <a href="http
 
 # Structure of Repository
 
-The <b>notebooks</b> folder contains the Google colab notebooks used to actually generate the main results.
+The <b>notebooks</b> folder contains the Google colab notebooks used to generate the main results.
 This folder contains the following files:
 <ul>
   <li> QG_consistent.ipynb: This contains the code used to download, process, and clean the r/AskScience dataset as well as the code used to actually train the model.</li>
